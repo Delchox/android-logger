@@ -20,11 +20,13 @@ import android.content.ContentResolver;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -56,7 +58,7 @@ public class Log {
         if (path.endsWith("/")) {
             PATH = path + "ApplicationLog.txt";
         } else if (!path.endsWith(".txt")) {
-            PATH  = path + ".txt";
+            PATH = path + ".txt";
         } else {
             PATH = path;
         }
@@ -162,27 +164,44 @@ public class Log {
 
     private static void logToFile(@Nullable ContentResolver contentResolver, String tag, String message) {
         if (Build.VERSION.SDK_INT >= 29 && contentResolver != null) {
+            ParcelFileDescriptor parcelFileDescriptor = null;
+                try  {
+                    parcelFileDescriptor = contentResolver.openFileDescriptor(URI, "w");
+                    FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                    fileDescriptor.
 
-        }
-        try {
-            File logFile = new File(Environment.getExternalStorageDirectory(), PATH);
-            if (!logFile.exists()) {
-                logFile.getParentFile().mkdirs();
-                logFile.createNewFile();
-            }
-            if (logFile.length() > 2097152) { // 2 MB
-                logFile.delete();
-                logFile.createNewFile();
-            }
-            BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true));
-            writer.write(String.format("%1s [%2s]:%3s\r\n", getDateTimeStamp(), tag, message));
-            writer.close();
 
-            if (logListener != null) {
-                logListener.onLogged(tag, message);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    if (parcelFileDescriptor != null)
+                        try {
+                            parcelFileDescriptor.close();
+                        } catch (IOException ioe) {
+
+                        }
+                }
+        } else {
+            try {
+                File logFile = new File(Environment.getExternalStorageDirectory(), PATH);
+                if (!logFile.exists()) {
+                    logFile.getParentFile().mkdirs();
+                    logFile.createNewFile();
+                }
+                if (logFile.length() > 2097152) { // 2 MB
+                    logFile.delete();
+                    logFile.createNewFile();
+                }
+                BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true));
+                writer.write(String.format("%1s [%2s]:%3s\r\n", getDateTimeStamp(), tag, message));
+                writer.close();
+
+                if (logListener != null) {
+                    logListener.onLogged(tag, message);
+                }
+            } catch (IOException e) {
+                android.util.Log.e(TAG, "Unable to log exception to file.", e);
             }
-        } catch (IOException e) {
-            android.util.Log.e(TAG, "Unable to log exception to file.", e);
         }
     }
 }
