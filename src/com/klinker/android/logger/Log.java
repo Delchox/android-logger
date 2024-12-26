@@ -16,7 +16,12 @@
 
 package com.klinker.android.logger;
 
+import android.content.ContentResolver;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -40,6 +45,7 @@ public class Log {
 
     private static boolean DEBUG_ENABLED = false;
     private static String PATH = "ApplicationLog.txt";
+    private static Uri URI = null;
     private static OnLogListener logListener;
 
     public static void setDebug(boolean debug) {
@@ -54,89 +60,94 @@ public class Log {
         } else {
             PATH = path;
         }
+
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+            Uri.Builder builder = new Uri.Builder();
+            URI = builder.path(PATH).build();
+        }
     }
 
     public static void setLogListener(OnLogListener listener) {
         logListener = listener;
     }
 
-    public static void e(String tag, String message) {
+    public static void e(@Nullable ContentResolver contentResolver, String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.e(tag, message);
             if (logResult > 0)
-                logToFile(tag, message);
+                logToFile(contentResolver, tag, message);
         }
     }
 
-    public static void e(String tag, String message, Throwable error) {
+    public static void e(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.e(tag, message, error);
             if (logResult > 0)
-                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
-    public static void v(String tag, String message) {
+    public static void v(@Nullable ContentResolver contentResolver, String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.v(tag, message);
             if (logResult > 0)
-                logToFile(tag, message);
+                logToFile(contentResolver, tag, message);
         }
     }
 
-    public static void v(String tag, String message, Throwable error) {
+    public static void v(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.v(tag, message, error);
             if (logResult > 0)
-                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
-    public static void d(String tag, String message) {
+    public static void d(@Nullable ContentResolver contentResolver, String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.d(tag, message);
             if (logResult > 0)
-                logToFile(tag, message);
+                logToFile(contentResolver, tag, message);
         }
     }
 
-    public static void d(String tag, String message, Throwable error) {
+    public static void d(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.d(tag, message, error);
             if (logResult > 0)
-                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
-    public static void i(String tag, String message) {
+    public static void i(@Nullable ContentResolver contentResolver, String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.i(tag, message);
             if (logResult > 0)
-                logToFile(tag, message);
+                logToFile(contentResolver, tag, message);
         }
     }
 
-    public static void i(String tag, String message, Throwable error) {
+    public static void i(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.i(tag, message, error);
             if (logResult > 0)
-                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
-    public static void w(String tag, String message) {
+    public static void w(@Nullable ContentResolver contentResolver, String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.w(tag, message);
             if (logResult > 0)
-                logToFile(tag, message);
+                logToFile(contentResolver, tag, message);
         }
     }
 
-    public static void w(String tag, String message, Throwable error) {
+    public static void w(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.w(tag, message, error);
             if (logResult > 0)
-                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
@@ -149,7 +160,10 @@ public class Log {
         return (DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US).format(dateNow));
     }
 
-    private static void logToFile(String tag, String message) {
+    private static void logToFile(@Nullable ContentResolver contentResolver, String tag, String message) {
+        if (Build.VERSION.SDK_INT >= 29 && contentResolver != null) {
+
+        }
         try {
             File logFile = new File(Environment.getExternalStorageDirectory(), PATH);
             if (!logFile.exists()) {

@@ -29,7 +29,6 @@ android {
             resources.srcDirs = ['src']
             aidl.srcDirs = ['src']
             renderscript.srcDirs = ['src']
-            res.srcDirs = ['res']
         }
     }
 
@@ -43,6 +42,12 @@ android {
     }
 
     namespace 'com.klinker.android.logger'
+
+    buildToolsVersion = "34.0.0"
+}
+
+dependencies {
+	implementation 'org.jetbrains:annotations:15.0'
 }
 
 //tasks.create<Jar>("createJar") {
