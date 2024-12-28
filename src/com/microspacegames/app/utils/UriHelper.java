@@ -18,7 +18,7 @@ import java.util.Queue;
 public class UriHelper {
 
     private static final String TEXT_TREE = "tree";
-    private static final Queue<Uri> visitedChilds = new LinkedList<>();
+    private static final Queue<Uri> visitedChildren = new LinkedList<>();
 
     public static List<Uri> getChildDocuments(ContentResolver contentResolver, Uri parentDirUri, boolean onlyDirectories) {
         final List<Uri> childDocumentIds = new ArrayList<>();
@@ -59,13 +59,13 @@ public class UriHelper {
         return childDocumentIds;
     }
 
-    public static List<Uri> getChildDocumentsOnlyFiles(ContentResolver contentResolver, Uri parentTreeUri) {
+    public static List<Uri> getChildDocumentsOnlyFiles(ContentResolver contentResolver, Uri parentDirTreeUri) {
         final List<Uri> childDocumentIds = new ArrayList<>();
 
         // Retrieve the document ID of the parent directory
-        String treeDocumentId = DocumentsContract.getDocumentId(parentTreeUri);
+        String treeDocumentId = DocumentsContract.getDocumentId(parentDirTreeUri);
 
-        Uri childDocumentsUri = DocumentsContract.buildChildDocumentsUriUsingTree(parentTreeUri, treeDocumentId);
+        Uri childDocumentsUri = DocumentsContract.buildChildDocumentsUriUsingTree(parentDirTreeUri, treeDocumentId);
 
         // Specify the columns you want to retrieve
         String[] projection = {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE};
@@ -81,7 +81,7 @@ public class UriHelper {
                     // Get the MIME type of each child
                     String mimeType = cursor.getString(1);
 
-                    Uri childDocumentUri = DocumentsContract.buildDocumentUriUsingTree(parentTreeUri, childDocumentId);
+                    Uri childDocumentUri = DocumentsContract.buildDocumentUriUsingTree(parentDirTreeUri, childDocumentId);
                     if (!DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
                         childDocumentIds.add(childDocumentUri);
                     }
@@ -226,12 +226,12 @@ public class UriHelper {
     public static Uri findFileTreeUri(ContentResolver contentResolver, Uri parentDirectoryTreeUri, String fileName) {
         Uri fileUri = null;
 
-        visitedChilds.clear();
+        visitedChildren.clear();
 
-        visitedChilds.add(parentDirectoryTreeUri);
+        visitedChildren.add(parentDirectoryTreeUri);
 
-        while (!visitedChilds.isEmpty()) {
-            Uri nextVisitedChild = visitedChilds.remove();
+        while (!visitedChildren.isEmpty()) {
+            Uri nextVisitedChild = visitedChildren.remove();
 
             List<Uri> subChildrens = UriHelper.getChildDocuments(contentResolver, nextVisitedChild, false);
 
@@ -257,7 +257,7 @@ public class UriHelper {
                             // Uri fileUri = Uri.withAppendedPath(parentDirectory, childDocumentId);
 
                             if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
-                                visitedChilds.add(subChild);
+                                visitedChildren.add(subChild);
                             } else if (childName.equals(fileName)) {
                                 fileUri = Uri.parse(subChild.toString()); //DocumentsContract.buildDocumentUriUsingTree(subChild, childDocumentId);
                                 break;
