@@ -22,6 +22,9 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 
+import com.microspacegames.app.utils.UriHelper;
+
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
@@ -46,26 +49,30 @@ public class Log {
     private static final String TAG = "Log";
 
     private static boolean DEBUG_ENABLED = false;
-    private static String PATH = "ApplicationLog.txt";
-    private static Uri URI = null;
+    private static final String FILE_NAME = "ApplicationLog.txt";
+    private static String PATH;
+    private static Uri FILE_URI;
     private static OnLogListener logListener;
+    private static ContentResolver CONTENT_RESOLVER;
 
-    public static void setDebug(boolean debug) {
+    public static void setDebug(@Nullable ContentResolver contentResolver, boolean debug) {
         DEBUG_ENABLED = debug;
+        CONTENT_RESOLVER = contentResolver;
     }
 
-    public static void setPath(String path) {
-        if (path.endsWith("/")) {
-            PATH = path + "ApplicationLog.txt";
-        } else if (!path.endsWith(".txt")) {
-            PATH = path + ".txt";
+    public static void setPath(@NotNull String path) {
+        if (Build.VERSION.SDK_INT >= 29) {
+            if (UriHelper.isTreeUri(path)) {
+                PATH = path;
+            }
         } else {
-            PATH = path;
-        }
-
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
-            Uri.Builder builder = new Uri.Builder();
-            URI = builder.path(PATH).build();
+            if (path.endsWith("/")) {
+                PATH = path + FILE_NAME;
+            } else if (!path.endsWith(".txt")) {
+                PATH = path + ".txt";
+            } else {
+                PATH = path;
+            }
         }
     }
 
@@ -73,83 +80,83 @@ public class Log {
         logListener = listener;
     }
 
-    public static void e(@Nullable ContentResolver contentResolver, String tag, String message) {
+    public static void e(String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.e(tag, message);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message);
+                logToFile(tag, message);
         }
     }
 
-    public static void e(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
+    public static void e(String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.e(tag, message, error);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
-    public static void v(@Nullable ContentResolver contentResolver, String tag, String message) {
+    public static void v(String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.v(tag, message);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message);
+                logToFile(tag, message);
         }
     }
 
-    public static void v(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
+    public static void v(String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.v(tag, message, error);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
-    public static void d(@Nullable ContentResolver contentResolver, String tag, String message) {
+    public static void d(String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.d(tag, message);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message);
+                logToFile(tag, message);
         }
     }
 
-    public static void d(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
+    public static void d(String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.d(tag, message, error);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
-    public static void i(@Nullable ContentResolver contentResolver, String tag, String message) {
+    public static void i(String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.i(tag, message);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message);
+                logToFile(tag, message);
         }
     }
 
-    public static void i(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
+    public static void i(String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.i(tag, message, error);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
-    public static void w(@Nullable ContentResolver contentResolver, String tag, String message) {
+    public static void w(String tag, String message) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.w(tag, message);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message);
+                logToFile(tag, message);
         }
     }
 
-    public static void w(@Nullable ContentResolver contentResolver, String tag, String message, Throwable error) {
+    public static void w(String tag, String message, Throwable error) {
         if (DEBUG_ENABLED) {
             int logResult = android.util.Log.w(tag, message, error);
             if (logResult > 0)
-                logToFile(contentResolver, tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
+                logToFile(tag, message + "\r\n" + android.util.Log.getStackTraceString(error));
         }
     }
 
@@ -162,25 +169,30 @@ public class Log {
         return (DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US).format(dateNow));
     }
 
-    private static void logToFile(@Nullable ContentResolver contentResolver, String tag, String message) {
-        if (Build.VERSION.SDK_INT >= 29 && contentResolver != null) {
-            ParcelFileDescriptor parcelFileDescriptor = null;
-                try  {
-                    parcelFileDescriptor = contentResolver.openFileDescriptor(URI, "w");
-                    FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
-                    fileDescriptor.
-
-
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    if (parcelFileDescriptor != null)
-                        try {
-                            parcelFileDescriptor.close();
-                        } catch (IOException ioe) {
+    private static void logToFile(String tag, String message) {
+        if (Build.VERSION.SDK_INT >= 29) {
+            if (CONTENT_RESOLVER != null) {
+                ParcelFileDescriptor parcelFileDescriptor;
+                try {
+                    if (FILE_URI == null) {
+                        FILE_URI = UriHelper.findFileTreeUri(CONTENT_RESOLVER, PATH, FILE_NAME);
+                    }
+                    if (FILE_URI != null) {
+                        parcelFileDescriptor = CONTENT_RESOLVER.openFileDescriptor(FILE_URI, "wa");
+                        if (parcelFileDescriptor != null) {
+                            FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(fileDescriptor));
+                            writer.write(String.format("%1s [%2s]:%3s\r\n", getDateTimeStamp(), tag, message));
+                            writer.close();
 
                         }
+                    }
+                } catch (IOException e) {
+                    android.util.Log.e(TAG, "Unable to log exception to file.", e);
                 }
+            } else {
+                android.util.Log.e(TAG, "Unable to log exception to file. ContentResolver is null.");
+            }
         } else {
             try {
                 File logFile = new File(Environment.getExternalStorageDirectory(), PATH);
